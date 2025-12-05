@@ -11,8 +11,8 @@
     <meta name="apple-mobile-web-app-title" content="Buy or Not">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081559.png">
     
-    <!-- Manifest -->
-    <link rel="manifest" href='data:application/json;base64,ewogICJuYW1lIjogIkJ1eSBvciBOb3QiLAogICJzaG9ydF9uYW1lIjogIkJ1eSBvciBOb3QiLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiI2VlZWNlOSIsCiAgInRoZW1lX2NvbG9yIjogIiMzMzMzMzMiLAogICJpY29ucyI6IFwKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2Nkbi1pY29ucy1wbmcuZmxhdGljb24uY29tLzUxMi8zMDgxLzMwODE1NTkucG5nIiwKICAgICAgInNpemVzIjogIjE5MngxOTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciCiAgICB9CiAgXQp9'>
+    <!-- Link to external manifest.json -->
+    <link rel="manifest" href="./manifest.json">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -21,12 +21,12 @@
             theme: {
                 extend: {
                     colors: {
-                        'paper-bg': '#FDFBF7', // Lighter, warmer paper white
-                        'card-white': '#FFFFFF', // Pure white for cards
-                        'ink-black': '#333333', // Softer black
-                        'clay': '#DFA995', // Softer muted Red/Pink
-                        'mustard': '#E6C288', // Softer Yellow
-                        'moss': '#5F7161', // Main Green Brand Color
+                        'paper-bg': '#FDFBF7',
+                        'card-white': '#FFFFFF',
+                        'ink-black': '#333333',
+                        'clay': '#DFA995',
+                        'mustard': '#E6C288',
+                        'moss': '#5F7161',
                         'moss-dark': '#4A584B',
                         'subtle-gray': '#F3F4F6'
                     },
@@ -54,8 +54,8 @@
 
     <style>
         body {
-            background-color: #FDFBF7; /* paper-bg */
-            color: #333333; /* ink-black */
+            background-color: #FDFBF7;
+            color: #333333;
             overscroll-behavior-y: none;
         }
         .app-container {
@@ -136,15 +136,11 @@
         // --- Components ---
 
         const Button = ({ onClick, variant = "primary", className = "", children, icon }) => {
-            // Updated Style: Softer corners, lighter feel
             const baseStyle = "w-full py-4 px-6 rounded-lg font-sans font-bold text-lg transition-all active:scale-[0.98] flex items-center justify-center gap-3 tracking-wide shadow-sm";
             const variants = {
-                // Primary is now Green (Moss) instead of Black
                 primary: "bg-moss text-white hover:bg-moss-dark shadow-moss/20",
-                // Secondary is White with Border
                 secondary: "bg-white text-ink-black border border-gray-200 hover:bg-gray-50",
                 ghost: "bg-transparent text-gray-400 hover:text-ink-black shadow-none",
-                // Warning specific
                 warning: "bg-red-50 text-clay border border-clay/30 hover:bg-red-100", 
             };
             
@@ -598,6 +594,21 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
+    </script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('SW registered:', registration);
+                    })
+                    .catch(error => {
+                        console.log('SW registration failed:', error);
+                    });
+            });
+        }
     </script>
 </body>
 </html>
