@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Buy or Not</title>
+    
+    <!-- PWA Settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default"> 
+    <meta name="apple-mobile-web-app-title" content="Buy or Not">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081559.png">
+    
+    <!-- Manifest -->
+    <link rel="manifest" href='data:application/json;base64,ewogICJuYW1lIjogIkJ1eSBvciBOb3QiLAogICJzaG9ydF9uYW1lIjogIkJ1eSBvciBOb3QiLAogICJzdGFydF91cmwiOiAiLiIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiI2VlZWNlOSIsCiAgInRoZW1lX2NvbG9yIjogIiMzMzMzMzMiLAogICJpY29ucyI6IFwKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2Nkbi1pY29ucy1wbmcuZmxhdGljb24uY29tLzUxMi8zMDgxLzMwODE1NTkucG5nIiwKICAgICAgInNpemVzIjogIjE5MngxOTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciCiAgICB9CiAgXQp9'>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'paper-bg': '#FDFBF7', // Lighter, warmer paper white
+                        'card-white': '#FFFFFF', // Pure white for cards
+                        'ink-black': '#333333', // Softer black
+                        'clay': '#DFA995', // Softer muted Red/Pink
+                        'mustard': '#E6C288', // Softer Yellow
+                        'moss': '#5F7161', // Main Green Brand Color
+                        'moss-dark': '#4A584B',
+                        'subtle-gray': '#F3F4F6'
+                    },
+                    fontFamily: {
+                        'sans': ['Helvetica Neue', 'Helvetica', 'Arial', 'PingFang TC', 'sans-serif'],
+                        'serif': ['Georgia', 'Times New Roman', 'serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px rgba(0, 0, 0, 0.03)',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        body {
+            background-color: #FDFBF7; /* paper-bg */
+            color: #333333; /* ink-black */
+            overscroll-behavior-y: none;
+        }
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background-color: #FDFBF7;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .fade-enter { opacity: 0; transform: translateY(10px); }
+        .fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity 400ms, transform 400ms; }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Data & Logic ---
+
+        const QUESTIONS = [
+            {
+                id: 0,
+                text: "你要買的商品是這些之一嗎？", 
+                type: "blacklist_check", 
+                options: []
+            },
+            { 
+                id: 1, 
+                text: "請問這項商品的持有狀況是？", 
+                type: "multi",
+                options: [
+                    { text: "完全沒有類似品", value: 5, variant: "primary" },
+                    { text: "對目前品項不滿意", value: 3, variant: "primary" },
+                    { text: "對目前品項很滿意", value: -10, variant: "secondary" }
+                ]
+            },
+            { 
+                id: 2, 
+                text: "關於這筆預算的真實想法？", 
+                type: "multi",
+                options: [
+                    { text: "會影響生活費 / 其實有點緊", value: -5, variant: "secondary" },
+                    { text: "買得起，但不買可以省下來", value: -2, variant: "secondary" },
+                    { text: "預算充足 / 本來就規劃要買", value: 3, variant: "primary" }
+                ]
+            },
+            { 
+                id: 3, 
+                text: "你預計的使用頻率是？", 
+                type: "multi",
+                options: [
+                    { text: "每天使用", value: 5, variant: "primary" },
+                    { text: "每月會使用到至少 1 次", value: 1, variant: "primary" },
+                    { text: "特定日期才會使用", value: -3, variant: "secondary" }
+                ]
+            },
+            { 
+                id: 4, 
+                text: "請問產生購買念頭的契機是？", 
+                type: "multi",
+                options: [
+                    { text: "這是冷靜期後的再次確認", value: 4, variant: "primary" },
+                    { text: "本來就計畫要買", value: 3, variant: "primary" },
+                    { text: "剛好看到，感覺有機會用到", value: -1, variant: "secondary" },
+                    { text: "剛好看到，只是覺得有趣", value: -3, variant: "secondary" }
+                ]
+            }
+        ];
+
+        // --- Components ---
+
+        const Button = ({ onClick, variant = "primary", className = "", children, icon }) => {
+            // Updated Style: Softer corners, lighter feel
+            const baseStyle = "w-full py-4 px-6 rounded-lg font-sans font-bold text-lg transition-all active:scale-[0.98] flex items-center justify-center gap-3 tracking-wide shadow-sm";
+            const variants = {
+                // Primary is now Green (Moss) instead of Black
+                primary: "bg-moss text-white hover:bg-moss-dark shadow-moss/20",
+                // Secondary is White with Border
+                secondary: "bg-white text-ink-black border border-gray-200 hover:bg-gray-50",
+                ghost: "bg-transparent text-gray-400 hover:text-ink-black shadow-none",
+                // Warning specific
+                warning: "bg-red-50 text-clay border border-clay/30 hover:bg-red-100", 
+            };
+            
+            return (
+                <button onClick={onClick} className={`${baseStyle} ${variants[variant]} ${className}`}>
+                    {icon && <i className={`ph-bold ${icon} text-xl`}></i>}
+                    {children}
+                </button>
+            );
+        };
+
+        // --- Screens ---
+
+        const WelcomeScreen = ({ onStart, onManageBlacklist, onHistory, historyCount }) => (
+            <div className="flex-1 flex flex-col justify-center items-center p-8 animate-fade-in relative bg-paper-bg">
+                <div className="flex-1 flex flex-col justify-center items-center w-full max-w-sm">
+                    <div className="mb-12 relative text-center">
+                        <div className="w-20 h-20 bg-moss/10 rounded-full flex items-center justify-center mx-auto mb-6 text-moss">
+                             <i className="ph-duotone ph-tag text-4xl"></i>
+                        </div>
+                        <h1 className="text-4xl md:text-5xl font-serif font-black text-ink-black tracking-tight z-10 relative">
+                            Buy or Not
+                        </h1>
+                    </div>
+
+                    <div className="w-full space-y-4">
+                        <Button onClick={() => onStart('quiz')} icon="ph-arrow-right">
+                            開始分析
+                        </Button>
+                        
+                        <div className="grid grid-cols-2 gap-3 w-full">
+                            <Button variant="secondary" onClick={onManageBlacklist} className="text-sm px-2 py-3">
+                                <i className="ph-bold ph-prohibit text-lg"></i>
+                                黑名單
+                            </Button>
+                            <Button variant="secondary" onClick={onHistory} className="text-sm px-2 py-3">
+                                <i className="ph-bold ph-clock-counter-clockwise text-lg"></i>
+                                紀錄
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const BlacklistScreen = ({ blacklist, onUpdate, onBack }) => {
+            const [newItem, setNewItem] = useState("");
+
+            const handleAdd = () => {
+                if (newItem.trim()) {
+                    onUpdate([...blacklist, newItem.trim()]);
+                    setNewItem("");
+                }
+            };
+
+            const handleRemove = (index) => {
+                const newList = blacklist.filter((_, i) => i !== index);
+                onUpdate(newList);
+            };
+
+            return (
+                <div className="flex-1 flex flex-col h-full bg-paper-bg animate-fade-in">
+                    <div className="p-6 flex justify-between items-center bg-white shadow-sm z-10">
+                        <h2 className="text-xl font-bold text-ink-black flex items-center gap-2">
+                            <i className="ph-duotone ph-prohibit text-clay"></i>
+                            絕對不買清單
+                        </h2>
+                        <button onClick={onBack} className="text-sm font-bold text-moss hover:opacity-80">
+                            完成
+                        </button>
+                    </div>
+
+                    <div className="p-6 space-y-6 overflow-y-auto no-scrollbar">
+                        <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 text-sm text-gray-600 leading-relaxed">
+                            <span className="font-bold text-orange-800 block mb-1">規則說明</span>
+                            設定您的「禁買品項」（如：馬克杯、磁鐵）。
+                            一旦在測驗中選中這些項目，分數將直接 <span className="text-clay font-bold">-10 分</span>。
+                        </div>
+
+                        <div className="flex gap-2">
+                            <input 
+                                type="text" 
+                                value={newItem}
+                                onChange={(e) => setNewItem(e.target.value)}
+                                placeholder="輸入項目 (例: 娃娃)"
+                                className="flex-1 bg-white border border-gray-200 rounded-lg p-3 text-ink-black focus:border-moss outline-none transition-colors shadow-sm"
+                                onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
+                            />
+                            <button onClick={handleAdd} className="bg-ink-black text-white px-5 rounded-lg font-bold hover:bg-gray-800 transition-colors">
+                                <i className="ph-bold ph-plus"></i>
+                            </button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                            {blacklist.length === 0 && (
+                                <div className="w-full text-center py-12 text-gray-300 italic">
+                                    <i className="ph-duotone ph-clipboard-text text-4xl mb-2 block"></i>
+                                    目前清單是空的
+                                </div>
+                            )}
+                            {blacklist.map((item, index) => (
+                                <div key={index} className="bg-white border border-gray-100 rounded-lg pl-4 pr-2 py-2 flex items-center gap-2 shadow-sm animate-fade-in">
+                                    <span className="font-medium text-gray-700">{item}</span>
+                                    <button onClick={() => handleRemove(index)} className="text-gray-300 hover:text-clay p-2 transition-colors">
+                                        <i className="ph-bold ph-x"></i>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const QuizScreen = ({ onFinish, onCancel, blacklist }) => {
+            const [currentQIndex, setCurrentQIndex] = useState(0);
+            const [score, setScore] = useState(0);
+            const [answers, setAnswers] = useState([]);
+
+            const question = QUESTIONS[currentQIndex];
+            const progress = ((currentQIndex + 1) / QUESTIONS.length) * 100;
+
+            const handleAnswer = (option) => {
+                const newScore = score + option.value;
+                const newAnswers = [...answers, { q: question.text, a: option.text }];
+
+                if (currentQIndex < QUESTIONS.length - 1) {
+                    setScore(newScore);
+                    setAnswers(newAnswers);
+                    setCurrentQIndex(prev => prev + 1);
+                } else {
+                    onFinish(newScore, newAnswers);
+                }
+            };
+
+            const renderOptions = () => {
+                if (question.type === 'blacklist_check') {
+                    if (blacklist.length === 0) {
+                        return (
+                            <div className="space-y-4">
+                                <div className="p-6 bg-white rounded-xl text-center text-gray-400 mb-4 border border-dashed border-gray-200 shadow-sm">
+                                    (目前無設定黑名單)
+                                </div>
+                                <Button 
+                                    onClick={() => handleAnswer({ text: "無設定 (跳過)", value: 0 })}
+                                    variant="primary"
+                                >
+                                    繼續
+                                </Button>
+                            </div>
+                        );
+                    }
+
+                    return (
+                        <div className="space-y-3">
+                            <p className="text-xs font-bold text-gray-400 text-center mb-2">請誠實作答</p>
+                            {blacklist.map((item, idx) => (
+                                <Button 
+                                    key={idx}
+                                    onClick={() => handleAnswer({ text: `是 (${item})`, value: -10 })}
+                                    variant="warning" 
+                                >
+                                    {item}
+                                </Button>
+                            ))}
+                            
+                            <div className="pt-4 border-t border-gray-100 mt-4">
+                                <Button 
+                                    onClick={() => handleAnswer({ text: "以上皆非", value: 0 })}
+                                    variant="primary" 
+                                >
+                                    以上皆非 / 安全
+                                </Button>
+                            </div>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="space-y-3">
+                        {question.options.map((opt, idx) => (
+                            <Button 
+                                key={idx}
+                                onClick={() => handleAnswer(opt)} 
+                                variant={opt.variant}
+                            >
+                                {opt.text}
+                            </Button>
+                        ))}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="flex-1 flex flex-col h-full bg-paper-bg">
+                    <div className="flex justify-between items-center p-6 pb-2">
+                        <button onClick={onCancel} className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
+                            <i className="ph-bold ph-x text-xl"></i>
+                        </button>
+                        <span className="font-bold text-sm text-gray-300 tracking-wider">
+                            Q{currentQIndex + 1}
+                        </span>
+                    </div>
+
+                    <div className="w-full h-1.5 bg-gray-100 mt-2">
+                        <div 
+                            className="bg-moss h-full transition-all duration-500 ease-out rounded-r-full" 
+                            style={{ width: `${progress}%` }}
+                        ></div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col justify-center p-8 overflow-y-auto no-scrollbar">
+                        <h2 className="text-2xl font-bold text-ink-black mb-10 leading-snug text-center">
+                            {question.text}
+                        </h2>
+
+                        <div className="w-full max-w-sm mx-auto">
+                            {renderOptions()}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ResultScreen = ({ score, answers, onSave, onBack }) => {
+            const [itemName, setItemName] = useState("");
+
+            let resultType = "neutral";
+            let title = "";
+            let sub = "";
+            let colorClass = "";
+            let bgClass = "";
+            let icon = "";
+
+            if (score >= 6) {
+                resultType = "buy";
+                title = "推薦購買";
+                sub = "符合需求，預算無虞。";
+                colorClass = "text-moss";
+                bgClass = "bg-green-50";
+                icon = "ph-check-circle";
+            } else if (score >= 1) {
+                resultType = "wait";
+                title = "再等三天";
+                sub = "先放購物車，避免衝動。";
+                colorClass = "text-mustard";
+                bgClass = "bg-yellow-50";
+                icon = "ph-pause-circle";
+            } else {
+                resultType = "stop";
+                title = "建議不要";
+                sub = "非必要消費，省錢為上。";
+                colorClass = "text-clay";
+                bgClass = "bg-red-50";
+                icon = "ph-hand-palm";
+            }
+
+            const handleSave = () => {
+                const dateStr = new Date().toISOString();
+                onSave({
+                    id: Date.now(), 
+                    itemName: itemName.trim() || "未命名項目",
+                    score,
+                    resultType,
+                    date: dateStr
+                });
+            };
+
+            return (
+                <div className="flex-1 flex flex-col h-full overflow-y-auto no-scrollbar bg-white">
+                    <div className={`flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in ${bgClass}`}>
+                        <div className={`w-24 h-24 rounded-full flex items-center justify-center bg-white shadow-soft mb-6 ${colorClass}`}>
+                            <i className={`ph-duotone ${icon} text-6xl`}></i>
+                        </div>
+                        <h2 className={`text-4xl font-black ${colorClass} mb-3 tracking-wide`}>{title}</h2>
+                        <p className="text-gray-500 font-medium text-lg">{sub}</p>
+                    </div>
+
+                    <div className="p-8 space-y-6 bg-white -mt-6 rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+                        <div className="space-y-3">
+                            <label className="text-xs font-bold tracking-widest text-gray-400 uppercase ml-1">商品名稱 (選填)</label>
+                            <input 
+                                type="text" 
+                                placeholder="您想買什麼？"
+                                className="w-full bg-subtle-gray border border-transparent rounded-xl py-4 px-4 text-lg text-ink-black focus:bg-white focus:border-moss outline-none transition-all placeholder-gray-400"
+                                value={itemName}
+                                onChange={(e) => setItemName(e.target.value)}
+                            />
+                        </div>
+                        <div className="pt-4 space-y-3">
+                            <Button onClick={handleSave} className="bg-ink-black text-white hover:bg-gray-800">
+                                結束並紀錄
+                            </Button>
+                            <Button variant="ghost" onClick={onBack}>
+                                不紀錄，重新開始
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const HistoryScreen = ({ history, onBack, onClear, onDeleteItem }) => {
+            return (
+                <div className="flex-1 flex flex-col h-full bg-paper-bg">
+                    <div className="p-6 flex justify-between items-center bg-white shadow-sm z-10">
+                        <h2 className="text-xl font-bold text-ink-black">
+                            <i className="ph-duotone ph-clock-counter-clockwise mr-2 text-moss"></i>
+                            歷史紀錄
+                        </h2>
+                        <button onClick={onBack} className="text-sm font-bold text-gray-400 hover:text-ink-black">
+                            返回
+                        </button>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3">
+                        {history.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center text-gray-300 space-y-4">
+                                <i className="ph-duotone ph-notebook text-5xl"></i>
+                                <span className="font-medium">尚無紀錄</span>
+                            </div>
+                        ) : (
+                            history.map((item, index) => {
+                                let statusColor = item.resultType === 'buy' ? "bg-moss" : item.resultType === 'wait' ? "bg-mustard" : "bg-clay";
+                                return (
+                                    <div key={item.id || index} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between animate-fade-in">
+                                        <div>
+                                            <div className="font-bold text-lg text-ink-black mb-1">{item.itemName}</div>
+                                            <div className="text-xs text-gray-400 font-medium bg-gray-50 inline-block px-2 py-1 rounded-md">
+                                                {new Date(item.date).toISOString().split('T')[0].replace(/-/g, '.')}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-3 h-3 rounded-full ${statusColor} shadow-sm`}></div>
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); onDeleteItem(index); }}
+                                                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-300 hover:text-clay hover:bg-red-50 transition-all"
+                                            >
+                                                <i className="ph-bold ph-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )
+                            })
+                        )}
+                    </div>
+                    {history.length > 0 && (
+                        <div className="p-4 bg-white border-t border-gray-100">
+                            <button onClick={onClear} className="w-full py-4 text-xs tracking-widest text-gray-400 hover:text-clay transition-colors uppercase font-bold">
+                                清除所有紀錄
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [view, setView] = useState('home');
+            const [history, setHistory] = useState([]);
+            const [blacklist, setBlacklist] = useState([]); 
+            const [lastResult, setLastResult] = useState(null);
+
+            useEffect(() => {
+                try {
+                    const savedHistory = localStorage.getItem('buyornot_history');
+                    if (savedHistory) setHistory(JSON.parse(savedHistory));
+                } catch (e) {}
+
+                try {
+                    const savedBlacklist = localStorage.getItem('buyornot_blacklist');
+                    if (savedBlacklist) setBlacklist(JSON.parse(savedBlacklist));
+                } catch (e) {}
+            }, []);
+
+            const handleUpdateBlacklist = (newList) => {
+                setBlacklist(newList);
+                localStorage.setItem('buyornot_blacklist', JSON.stringify(newList));
+            };
+
+            const handleQuizFinish = (score, answers) => {
+                setLastResult({ score, answers });
+                setView('result');
+            };
+
+            const handleSaveResult = (data) => {
+                const newHistory = [data, ...history];
+                setHistory(newHistory);
+                localStorage.setItem('buyornot_history', JSON.stringify(newHistory));
+                setView('home');
+            };
+
+            const handleDeleteItem = (index) => {
+                if(confirm("確定刪除此筆紀錄？")) {
+                    const newHistory = history.filter((_, i) => i !== index);
+                    setHistory(newHistory);
+                    localStorage.setItem('buyornot_history', JSON.stringify(newHistory));
+                }
+            };
+
+            const handleClearHistory = () => {
+                if(confirm("確定清除所有紀錄？")) {
+                    setHistory([]);
+                    localStorage.removeItem('buyornot_history');
+                }
+            };
+
+            return (
+                <div className="app-container font-sans antialiased text-ink-black">
+                    {view === 'home' && (
+                        <WelcomeScreen 
+                            onStart={(v) => setView(v)} 
+                            onManageBlacklist={() => setView('blacklist')}
+                            onHistory={() => setView('history')}
+                            historyCount={history.length} 
+                        />
+                    )}
+                    {view === 'blacklist' && (
+                        <BlacklistScreen
+                            blacklist={blacklist}
+                            onUpdate={handleUpdateBlacklist}
+                            onBack={() => setView('home')}
+                        />
+                    )}
+                    {view === 'quiz' && (
+                        <QuizScreen 
+                            blacklist={blacklist}
+                            onFinish={handleQuizFinish} 
+                            onCancel={() => setView('home')} 
+                        />
+                    )}
+                    {view === 'result' && lastResult && (
+                        <ResultScreen 
+                            score={lastResult.score} 
+                            answers={lastResult.answers}
+                            onSave={handleSaveResult}
+                            onBack={() => setView('home')}
+                        />
+                    )}
+                    {view === 'history' && (
+                        <HistoryScreen 
+                            history={history} 
+                            onBack={() => setView('home')}
+                            onClear={handleClearHistory}
+                            onDeleteItem={handleDeleteItem}
+                        />
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
