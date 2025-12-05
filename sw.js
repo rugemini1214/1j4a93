@@ -3,12 +3,12 @@ const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
+  './icon.png',
   'https://cdn.tailwindcss.com',
   'https://unpkg.com/react@18/umd/react.production.min.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
   'https://unpkg.com/@babel/standalone/babel.min.js',
-  'https://unpkg.com/@phosphor-icons/web',
-  'https://cdn-icons-png.flaticon.com/512/3081/3081559.png'
+  'https://unpkg.com/@phosphor-icons/web'
 ];
 
 // 安裝時：快取所有靜態資源
